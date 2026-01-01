@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Work Flow — Timer + Todos</title>
+  <style>
+    :root{
+      --bg: #0b0f16;
+      --panel: rgba(255,255,255,0.06);
+      --panel2: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.10);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.60);
+      --muted2: rgba(255,255,255,0.45);
+      --accent: #7c3aed; /* violet */
+      --accent2: #22c55e; /* green */
+      --danger: #ef4444;
+      --shadow: 0 20px 60px rgba(0,0,0,0.45);
+      --radius: 18px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+
+    *{ box-sizing: border-box; }
+    body{
+      margin:0;
+      font-family: var(--sans);
+      background: radial-gradient(1200px 800px at 20% -10%, rgba(124,58,237,0.22), transparent 60%),
+                  radial-gradient(900px 600px at 110% 20%, rgba(34,197,94,0.12), transparent 55%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+    }
+
+    .app{
+      width: min(980px, 100%);
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 900px){
+      .app{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .cardHeader{
+      padding: 16px 18px;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
+    }
+
+    .title{
+      display:flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .title h1{
+      font-size: 16px;
+      margin:0;
+      letter-spacing: 0.2px;
+      font-weight: 650;
+    }
+    .title p{
+      margin:0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .pillRow{
+      display:flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .pill{
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.35);
+    }
+
+    .dot.live{ background: var(--accent2); box-shadow: 0 0 0 6px rgba(34,197,94,0.12); }
+
+    .content{
+      padding: 16px 18px 18px;
+    }
+
+    .timerBox{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .bigTime{
+      font-family: var(--mono);
+      font-size: 44px;
+      letter-spacing: -1px;
+      line-height: 1.05;
+      margin: 4px 0 0;
+    }
+
+    .subRow{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .btnRow{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn{
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      padding: 11px 12px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+      user-select: none;
+    }
+    .btn:hover{ background: rgba(255,255,255,0.085); border-color: rgba(255,255,255,0.18); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      background: linear-gradient(180deg, rgba(124,58,237,0.95), rgba(124,58,237,0.75));
+      border-color: rgba(124,58,237,0.55);
+    }
+    .btn.primary:hover{ background: linear-gradient(180deg, rgba(124,58,237,1), rgba(124,58,237,0.8)); }
+    .btn.good{
+      background: linear-gradient(180deg, rgba(34,197,94,0.95), rgba(34,197,94,0.75));
+      border-color: rgba(34,197,94,0.55);
+    }
+    .btn.danger{
+      background: rgba(239,68,68,0.10);
+      border-color: rgba(239,68,68,0.35);
+      color: rgba(255,255,255,0.90);
+    }
+    .btn:disabled{
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .hint{
+      font-size: 12px;
+      color: var(--muted2);
+      line-height: 1.4;
+      margin-top: 4px;
+    }
+
+    .todoInput{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    textarea{
+      width: 100%;
+      min-height: 110px;
+      resize: vertical;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.25);
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+      line-height: 1.35;
+    }
+    textarea::placeholder{ color: rgba(255,255,255,0.35); }
+    textarea:focus{
+      border-color: rgba(124,58,237,0.55);
+      box-shadow: 0 0 0 4px rgba(124,58,237,0.12);
+    }
+
+    .todoList{
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display:flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .todoItem{
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+      border-radius: 14px;
+      padding: 10px 10px;
+      display:flex;
+      align-items:flex-start;
+      gap: 10px;
+    }
+
+    .check{
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor: pointer;
+      user-select:none;
+      flex: 0 0 auto;
+    }
+    .check svg{ width: 14px; height: 14px; opacity: 0; transform: scale(0.9); transition: all .12s ease; }
+    .todoItem.done .check{
+      background: rgba(34,197,94,0.16);
+      border-color: rgba(34,197,94,0.35);
+    }
+    .todoItem.done .check svg{ opacity: 1; transform: scale(1); }
+
+    .todoMain{
+      flex: 1;
+      min-width: 0;
+    }
+
+    .todoText{
+      font-size: 13px;
+      line-height: 1.35;
+      margin: 0;
+      word-break: break-word;
+    }
+    .todoItem.done .todoText{
+      text-decoration: line-through;
+      color: rgba(255,255,255,0.55);
+    }
+
+    .todoMeta{
+      margin-top: 4px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: rgba(255,255,255,0.45);
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .emptyState{
+      border: 1px dashed rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+      padding: 14px 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .quote{
+      margin-top: 10px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.82);
+      font-style: italic;
+    }
+
+    .footerRow{
+      margin-top: 14px;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--muted2);
+      font-size: 12px;
+    }
+
+    .kbd{
+      font-family: var(--mono);
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.05);
+      padding: 2px 6px;
+      border-radius: 8px;
+      color: rgba(255,255,255,0.75);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- LEFT: Timer -->
+    <section class="card">
+      <div class="cardHeader">
+        <div class="title">
+          <h1>Work Flow</h1>
+          <p>Timer + Daily output. Keep it boring. Keep it consistent.</p>
+        </div>
+        <div class="pillRow">
+          <div class="pill"><span class="dot" id="liveDot"></span><span id="liveText">Idle</span></div>
+          <div class="pill">Today: <span id="todayTotal">00:00:00</span></div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="timerBox">
+          <div>
+            <div class="subRow">
+              <span>Session timer</span>
+              <span id="sessionLabel" class="kbd">stopped</span>
+            </div>
+            <div class="bigTime" id="sessionTime">00:00:00</div>
+            <div class="hint">
+              Start the timer when you begin work. Each todo you complete will record how fast you did it.
+            </div>
+          </div>
+
+          <div class="btnRow">
+            <button class="btn primary" id="startBtn">Start</button>
+            <button class="btn good" id="stopBtn" disabled>Stop</button>
+            <button class="btn danger" id="resetDayBtn">Reset Day</button>
+          </div>
+
+          <div class="footerRow">
+            <span>Tip: paste todos (one per line) → Add.</span>
+            <span><span class="kbd">Start</span> before you grind.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Todos -->
+    <section class="card">
+      <div class="cardHeader">
+        <div class="title">
+          <h1>Notepad Todos</h1>
+          <p>Paste your list. Cross them off. Win the day.</p>
+        </div>
+        <div class="pillRow">
+          <div class="pill">Remaining: <span id="remainingCount">0</span></div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="todoInput">
+          <textarea id="todoTextArea" placeholder="Paste your todos here (one per line)
+Example:
+- Fix greeting message
+- Add branding footer
+- Push to GitHub"></textarea>
+
+          <div class="btnRow">
+            <button class="btn" id="addTodosBtn">Add</button>
+            <button class="btn danger" id="clearTodosBtn">Clear Todos</button>
+          </div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <ul class="todoList" id="todoList"></ul>
+
+        <div id="emptyBlock" class="emptyState" style="display:none;">
+          <div><strong>Ready for the next day.</strong> 😈</div>
+          <div class="quote" id="quote"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script>
+  // ===== Quotes =====
+  const QUOTES = [
+    "Consistency beats hype. Every day.",
+    "Boring work makes loud results.",
+    "You don’t need motivation. You need momentum.",
+    "Small wins stack into big wins.",
+    "Do it sloppy, then do it clean. Just do it.",
+    "Future you is built by today you.",
+    "You’re not tired, you’re under-disciplined. Fix it.",
+    "Show up. Do the reps. Leave."
+  ];
+
+  // ===== State =====
+  const STORAGE_KEY = "workflow_v1";
+  const state = loadState() ?? {
+    isRunning: false,
+    sessionStartMs: null,
+    sessionElapsedMs: 0,
+    todayTotalMs: 0,
+    lastTickMs: null,
+
+    todos: [],
+    // When running, we time the "current" todo:
+    activeTodoId: null,
+    activeTodoStartedAtMs: null,
+
+    lastUpdatedISO: new Date().toISOString().slice(0,10) // YYYY-MM-DD
+  };
+
+  // ===== Elements =====
+  const sessionTimeEl = document.getElementById("sessionTime");
+  const todayTotalEl = document.getElementById("todayTotal");
+  const startBtn = document.getElementById("startBtn");
+  const stopBtn = document.getElementById("stopBtn");
+  const resetDayBtn = document.getElementById("resetDayBtn");
+  const sessionLabelEl = document.getElementById("sessionLabel");
+  const liveDot = document.getElementById("liveDot");
+  const liveText = document.getElementById("liveText");
+
+  const todoTextArea = document.getElementById("todoTextArea");
+  const addTodosBtn = document.getElementById("addTodosBtn");
+  const clearTodosBtn = document.getElementById("clearTodosBtn");
+  const todoListEl = document.getElementById("todoList");
+  const remainingCountEl = document.getElementById("remainingCount");
+  const emptyBlock = document.getElementById("emptyBlock");
+  const quoteEl = document.getElementById("quote");
+
+  // ===== Helpers =====
+  function msToHMS(ms){
+    const totalSeconds = Math.floor(ms / 1000);
+    const h = String(Math.floor(totalSeconds / 3600)).padStart(2,"0");
+    const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2,"0");
+    const s = String(totalSeconds % 60).padStart(2,"0");
+    return `${h}:${m}:${s}`;
+  }
+
+  function nowMs(){ return Date.now(); }
+
+  function saveState(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    }catch{ return null; }
+  }
+
+  function isNewDay(){
+    const today = new Date().toISOString().slice(0,10);
+    return state.lastUpdatedISO !== today;
+  }
+
+  function rolloverNewDayIfNeeded(){
+    if (!isNewDay()) return;
+
+    // New day reset (but keep todos? your choice)
+    // For this project: reset timer totals, keep todos (sometimes you paste for the day).
+    state.isRunning = false;
+    state.sessionStartMs = null;
+    state.sessionElapsedMs = 0;
+    state.todayTotalMs = 0;
+    state.lastTickMs = null;
+    state.activeTodoId = null;
+    state.activeTodoStartedAtMs = null;
+    state.lastUpdatedISO = new Date().toISOString().slice(0,10);
+
+    saveState();
+  }
+
+  function pickNextTodo(){
+    const next = state.todos.find(t => !t.done);
+    if (!next) return null;
+    return next;
+  }
+
+  function ensureActiveTodo(){
+    const next = pickNextTodo();
+    if (!next){
+      state.activeTodoId = null;
+      state.activeTodoStartedAtMs = null;
+      return;
+    }
+    if (state.activeTodoId !== next.id){
+      state.activeTodoId = next.id;
+      state.activeTodoStartedAtMs = nowMs();
+    }else if (!state.activeTodoStartedAtMs){
+      state.activeTodoStartedAtMs = nowMs();
+    }
+  }
+
+  function setRunningUI(running){
+    startBtn.disabled = running;
+    stopBtn.disabled = !running;
+    sessionLabelEl.textContent = running ? "running" : "stopped";
+    liveDot.classList.toggle("live", running);
+    liveText.textContent = running ? "Live" : "Idle";
+  }
+
+  function render(){
+    rolloverNewDayIfNeeded();
+
+    sessionTimeEl.textContent = msToHMS(state.sessionElapsedMs);
+    todayTotalEl.textContent = msToHMS(state.todayTotalMs);
+
+    const remaining = state.todos.filter(t => !t.done).length;
+    remainingCountEl.textContent = String(remaining);
+
+    todoListEl.innerHTML = "";
+
+    const hasTodos = state.todos.length > 0;
+    const allDone = hasTodos && remaining === 0;
+
+    if (!hasTodos || allDone){
+      emptyBlock.style.display = "block";
+      if (allDone){
+        quoteEl.textContent = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+      } else {
+        quoteEl.textContent = "Paste your tasks for today. Then press Add.";
+      }
+    } else {
+      emptyBlock.style.display = "none";
+    }
+
+    if (allDone){
+      // wipe list automatically as requested
+      state.todos = [];
+      state.activeTodoId = null;
+      state.activeTodoStartedAtMs = null;
+      saveState();
+      // keep empty block visible with quote
+    } else {
+      state.todos.forEach(todo => {
+        const li = document.createElement("li");
+        li.className = "todoItem" + (todo.done ? " done" : "");
+        li.dataset.id = todo.id;
+
+        const check = document.createElement("div");
+        check.className = "check";
+        check.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M20 6L9 17l-5-5" stroke="rgba(255,255,255,0.92)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        `;
+
+        const main = document.createElement("div");
+        main.className = "todoMain";
+
+        const p = document.createElement("p");
+        p.className = "todoText";
+        p.textContent = todo.text;
+
+        const meta = document.createElement("div");
+        meta.className = "todoMeta";
+
+        const created = document.createElement("span");
+        created.textContent = "added " + new Date(todo.createdAtMs).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+
+        meta.appendChild(created);
+
+        if (todo.completedInMs != null){
+          const speed = document.createElement("span");
+          speed.textContent = "completed in " + msToHMS(todo.completedInMs);
+          meta.appendChild(speed);
+        }
+
+        main.appendChild(p);
+        main.appendChild(meta);
+
+        check.addEventListener("click", () => toggleTodo(todo.id));
+
+        li.appendChild(check);
+        li.appendChild(main);
+        todoListEl.appendChild(li);
+      });
+    }
+
+    setRunningUI(state.isRunning);
+  }
+
+  // ===== Timer =====
+  let interval = null;
+
+  function tick(){
+    if (!state.isRunning) return;
+
+    const t = nowMs();
+    const last = state.lastTickMs ?? t;
+    const delta = Math.max(0, t - last);
+
+    state.sessionElapsedMs += delta;
+    state.todayTotalMs += delta;
+    state.lastTickMs = t;
+
+    saveState();
+    render();
+  }
+
+  function startTimer(){
+    if (state.isRunning) return;
+
+    state.isRunning = true;
+    state.sessionStartMs = nowMs();
+    state.lastTickMs = nowMs();
+
+    // Start timing current todo (or next incomplete)
+    ensureActiveTodo();
+
+    saveState();
+    render();
+
+    if (!interval) interval = setInterval(tick, 250);
+  }
+
+  function stopTimer(){
+    if (!state.isRunning) return;
+
+    // final tick so we don’t lose time
+    tick();
+
+    state.isRunning = false;
+    state.sessionStartMs = null;
+    state.lastTickMs = null;
+
+    // Pause todo timer (keep activeTodoId but stop counting until restarted)
+    state.activeTodoStartedAtMs = null;
+
+    saveState();
+    render();
+  }
+
+  function resetDay(){
+    const ok = confirm("Reset today? This clears timer totals + todos. (No mercy)");
+    if (!ok) return;
+
+    state.isRunning = false;
+    state.sessionStartMs = null;
+    state.sessionElapsedMs = 0;
+    state.todayTotalMs = 0;
+    state.lastTickMs = null;
+
+    state.todos = [];
+    state.activeTodoId = null;
+    state.activeTodoStartedAtMs = null;
+
+    state.lastUpdatedISO = new Date().toISOString().slice(0,10);
+
+    saveState();
+    render();
+  }
+
+  // ===== Todos =====
+  function addTodosFromTextarea(){
+    const raw = todoTextArea.value.trim();
+    if (!raw) return;
+
+    const lines = raw
+      .split("\n")
+      .map(l => l.trim())
+      .filter(Boolean)
+      .map(l => l.replace(/^[-•\d.)\s]+/, "").trim())
+      .filter(Boolean);
+
+    if (!lines.length) return;
+
+    const now = nowMs();
+    for (const text of lines){
+      state.todos.push({
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2),
+        text,
+        done: false,
+        createdAtMs: now,
+        completedInMs: null
+      });
+    }
+
+    todoTextArea.value = "";
+    // If timer running, ensure active todo is correct
+    if (state.isRunning) ensureActiveTodo();
+
+    saveState();
+    render();
+  }
+
+  function clearTodos(){
+    const ok = confirm("Clear all todos?");
+    if (!ok) return;
+    state.todos = [];
+    state.activeTodoId = null;
+    state.activeTodoStartedAtMs = null;
+    saveState();
+    render();
+  }
+
+  function toggleTodo(id){
+    const todo = state.todos.find(t => t.id === id);
+    if (!todo) return;
+
+    // Only calculate speed when marking done (not when unchecking)
+    if (!todo.done){
+      // If timer running AND this is the active todo, compute time
+      if (state.isRunning && state.activeTodoId === id && state.activeTodoStartedAtMs){
+        const elapsed = Math.max(0, nowMs() - state.activeTodoStartedAtMs);
+        todo.completedInMs = elapsed;
+      } else {
+        // If they check it without timer running, we still mark, but no time.
+        todo.completedInMs = todo.completedInMs ?? null;
+      }
+
+      todo.done = true;
+
+      // Move timing to next todo automatically if timer running
+      if (state.isRunning){
+        const next = pickNextTodo();
+        if (next){
+          state.activeTodoId = next.id;
+          state.activeTodoStartedAtMs = nowMs();
+        } else {
+          state.activeTodoId = null;
+          state.activeTodoStartedAtMs = null;
+        }
+      }
+    } else {
+      // Unchecking a todo (optional behavior)
+      todo.done = false;
+      todo.completedInMs = null;
+
+      // If timer running and no active todo, or this is first undone, set active to next
+      if (state.isRunning){
+        ensureActiveTodo();
+      }
+    }
+
+    saveState();
+    render();
+  }
+
+  // ===== Events =====
+  startBtn.addEventListener("click", startTimer);
+  stopBtn.addEventListener("click", stopTimer);
+  resetDayBtn.addEventListener("click", resetDay);
+  addTodosBtn.addEventListener("click", addTodosFromTextarea);
+  clearTodosBtn.addEventListener("click", clearTodos);
+
+  // Ctrl/Cmd + Enter to add todos quickly
+  todoTextArea.addEventListener("keydown", (e) => {
+    const isCmdEnter = (e.metaKey || e.ctrlKey) && e.key === "Enter";
+    if (isCmdEnter){
+      e.preventDefault();
+      addTodosFromTextarea();
+    }
+  });
+
+  // Start interval if needed
+  if (!interval) interval = setInterval(tick, 250);
+
+  // Initial render
+  render();
+</script>
+</body>
+</html>
